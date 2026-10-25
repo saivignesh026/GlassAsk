@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'"><title>Glass Ask</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="glass">
+<header><div class="orb" aria-hidden="true"></div><div class="brand">GLASS ASK<span id="mode">A little clarity, on demand.</span></div><button id="settings-toggle" class="icon" aria-label="Settings" title="Settings">⚙</button><button id="close" class="icon" aria-label="Close" title="Close (Escape)">×</button></header>
+<section id="chat">
+<div id="onboarding" hidden><h1>A thought away.</h1><p>Ask a question. Understand your screen.<br>Your ChatGPT account, in a quieter space.</p><button id="connect" class="connect">Continue with ChatGPT <span>↗</span></button><p class="fine">Uses your eligible ChatGPT plan. Glass Ask is an independent, open-source app.</p></div>
+<div id="composer-area"><div id="attachment" class="chip" hidden><span>▣ &nbsp; Screen captured</span><button id="remove-image" title="Remove screenshot" aria-label="Remove screenshot">×</button></div>
+<form id="composer"><textarea id="question" rows="2" placeholder="What’s on your mind?" aria-label="Your question" maxlength="20000"></textarea><button id="send" class="send" aria-label="Send question">↑</button></form>
+<div class="meta"><span id="status" role="status">Enter to ask · Shift+Enter for a new line</span><button id="cancel" class="link" hidden>Stop</button></div>
+<div id="result" hidden><div class="divider"></div><p id="asked"></p><div id="answer" aria-live="polite"></div><button id="copy" class="link" hidden>Copy answer</button></div>
+<footer><span id="plan">Using ChatGPT plan</span><button class="link usage">Manage usage ↗</button></footer></div>
+</section>
+<section id="settings-panel" hidden><div class="section-title"><h2>Make it yours.</h2><button id="back" class="link">Done</button></div>
+<div class="setting-group"><h3>CONNECTION</h3><label>ChatGPT account<select id="account"></select></label><div class="actions"><button id="reconnect">Reconnect</button><button id="add-account">Add account</button><button id="signout" class="link">Sign out</button></div><label>Model<select id="model"></select></label><button id="refresh-models" class="link">Refresh models</button><button class="link usage">Manage usage ↗</button></div>
+<div class="setting-group"><h3>KEYBOARD SHORTCUTS</h3><p class="fine">Click a shortcut, then press your preferred key combination.</p><label>Ask a question<input id="textShortcut" readonly aria-label="Record text shortcut"></label><label>Ask about screen<input id="screenShortcut" readonly aria-label="Record screenshot shortcut"></label></div>
+<div class="setting-group"><label class="toggle">Mouse shake gestures<input type="checkbox" id="gestures"></label><p class="fine">Left–right captures the display under your pointer. Up–down opens a text question. No screenshot is sent until you ask.</p><label>Movements each way<input type="number" id="shakeCount" min="3" max="10"></label><label>Time window (milliseconds)<input type="number" id="shakeWindow" min="1000" max="5000" step="100"></label></div>
+<div class="setting-group"><label>Glass opacity<input type="range" id="opacity" min="40" max="100"></label><label class="toggle">Launch when Windows starts<input type="checkbox" id="startAtLogin"></label></div><button id="save" class="primary">Save preferences</button></section>
+<div id="notice" role="alert" hidden></div>
+<div id="welcome" hidden><strong>You’re using your ChatGPT plan</strong><p>Eligible requests use your plan or credits. Manage limits in ChatGPT settings.</p><button id="got-it">Got it</button></div>
+</main><script src="renderer.js"></script></body></html>
