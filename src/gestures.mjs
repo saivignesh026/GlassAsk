@@ -6,9 +6,10 @@ export class ShakeDetector {
     if(!this.anchor){this.anchor=[x,y];return null;}
     const dx=x-this.anchor[0],dy=y-this.anchor[1];
     if(Math.max(Math.abs(dx),Math.abs(dy))<25) return null;
-    this.anchor=[x,y];
     const axis=Math.abs(dx)>Math.abs(dy)*1.5?'x':Math.abs(dy)>Math.abs(dx)*1.5?'y':null;
-    if(!axis){this.reset();return null;}
+    // Ignore small off-axis samples instead of discarding the whole gesture.
+    if(!axis){if(Math.max(Math.abs(dx),Math.abs(dy))>75)this.reset();return null;}
+    this.anchor=[x,y];
     if(axis!==this.axis){this.axis=axis;this.strokes=[];this.direction=0;}
     this.strokes=this.strokes.filter(s=>now-s.time<=this.windowMs);
     const dir=Math.sign(axis==='x'?dx:dy);

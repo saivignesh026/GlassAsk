@@ -1,8 +1,11 @@
 const $=id=>document.getElementById(id);
 let state=null,answer='',pending=false;
-let fitQueued=false,lastHeight=0;
-function fit(){if(fitQueued)return;fitQueued=true;requestAnimationFrame(()=>{fitQueued=false;const height=Math.min(690,document.querySelector('.glass').scrollHeight+42);if(height!==lastHeight){lastHeight=height;call('resize',height).catch(()=>{});}});}
+let fitQueued=false;
+function fit(){if(fitQueued)return;fitQueued=true;queueMicrotask(()=>{fitQueued=false;const height=Math.min(690,document.querySelector('.glass').scrollHeight+42);call('resize',height).catch(error=>console.error('Resize failed:',error.message));});}
 new MutationObserver(fit).observe(document.querySelector('.glass'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
+new ResizeObserver(fit).observe(document.querySelector('.glass'));
+window.addEventListener('resize',fit);
+document.fonts.ready.then(fit);
 const notice=text=>{$('notice').textContent=text;$('notice').hidden=!text;};
 async function call(name,...args){return window.glass.call(name,...args);}
 function guarded(fn){return async(...args)=>{try{notice('');await fn(...args);}catch(error){notice(error.message);}};}

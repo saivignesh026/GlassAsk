@@ -3,8 +3,9 @@
 Run on a real Windows 11 x64 desktop and, for the fallback, Windows 10. These checks were not completed on the Fedora authoring machine.
 
 - [ ] Install/uninstall the NSIS package without admin rights; verify shortcuts and tray icon.
-- [ ] Check acrylic/transparency, high contrast, reduced motion, 100%/150%/200% DPI, and multiple monitor layouts.
+- [ ] Check transparent margins, compact sizing after reopening and returning from Settings, high contrast, reduced motion, 100%/150%/200% DPI, and multiple monitor layouts. Run `npm run test:windows` for automated layout/handoff checks first.
 - [ ] Connect an eligible real ChatGPT account using system-browser sign-in. Confirm the app name and scopes in consent.
+- [ ] During browser sign-in, the assistant hides and stays out of Chrome's way. It returns on completion, cancellation, or browser failure.
 - [ ] Decline/cancel sign-in; try a signed-out registration, reconnect, account switching and workspace registrations with the same email.
 - [ ] Verify real ID-token signature validation, catalog loading, request completion, limit errors and token renewal.
 - [ ] Sign out while offline and online; confirm local clearing and the remote revocation notice.

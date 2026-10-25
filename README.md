@@ -7,7 +7,7 @@ A small, glass-style Windows assistant. Ask a question from anywhere, or capture
 ## Features
 
 - Frameless, always-on-top glass popup, with an adjustable translucent fallback.
-- Native Windows acrylic where supported (Windows 11 22H2+).
+- Transparent rounded panel without a rectangular native backdrop.
 - Continue with ChatGPT, saved account/workspace registrations, reconnect and sign-out.
 - Account-specific model picker and streamed answers.
 - Separate, customizable global shortcuts for text and screen questions, with conflict detection.
@@ -39,7 +39,7 @@ Create the installer:
 npm run dist:win
 ```
 
-The output is `dist/Glass-Ask-0.1.0-Setup.exe`. It is unsigned unless you configure your own signing certificate. Sign and test public release binaries under your own publisher identity.
+The output is `dist/Glass-Ask-0.1.1-Setup.exe`. It is unsigned unless you configure your own signing certificate. Sign and test public release binaries under your own publisher identity.
 
 ## Put it on GitHub
 
@@ -60,6 +60,8 @@ git push -u origin main
 The included `package-lock.json` pins the resolved dependencies. Local and GitHub Actions builds use `npm ci` for repeatable installs. The workflow uploads the lockfile as an artifact as well.
 
 ## Use it
+
+Mouse gestures are enabled on new installations. Upgrades preserve your existing preference: if gestures are off, enable **Settings → Mouse shake gestures** and click **Save preferences**. Click outside the panel or press Escape to dismiss it before shaking the mouse. Sign-in hides the panel while you use the browser and restores it when sign-in finishes or fails.
 
 1. Launch Glass Ask and choose **Continue with ChatGPT**. Approve the connection in the system browser.
 2. Default text shortcut: **Ctrl + Alt + Space**.
@@ -84,6 +86,8 @@ npm test
 ```
 
 Tests cover shake direction/timing, shortcut conflicts, OAuth state/client checks, token scope handling, stream completion and failures, and protected-storage failure behavior. Mocked tests are not a substitute for the Windows and real-account checks.
+
+On Windows, `npm run test:windows` launches an isolated test instance without installing the app or using your saved accounts. It checks panel sizing, transparent margins, dismissal, and browser handoff. `npm start` runs the app for manual testing before building an installer.
 
 ## License
 

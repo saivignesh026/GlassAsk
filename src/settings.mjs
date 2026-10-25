@@ -1,4 +1,4 @@
-export const defaults = Object.freeze({textShortcut:'Control+Alt+Space', screenShortcut:'Control+Alt+S', gestures:false, shakeCount:5, shakeWindow:2000, opacity:82, startAtLogin:false, model:''});
+export const defaults = Object.freeze({textShortcut:'Control+Alt+Space', screenShortcut:'Control+Alt+S', gestures:true, shakeCount:5, shakeWindow:2000, opacity:82, startAtLogin:false, model:''});
 export function shortcut(value) {
   if (typeof value !== 'string' || value.length > 80) throw Error('Invalid shortcut.');
   const parts = value.split('+');

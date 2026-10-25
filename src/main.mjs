@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {defaults,validateSettings,registerShortcuts} from './settings.mjs';
 import {ShakeDetector} from './gestures.mjs';
+import {browserHandoff} from './window-behavior.mjs';
 import {Vault,readJSON,atomicWrite} from './storage.mjs';
 import {signIn,refresh,revoke} from './oauth.mjs';
 import {listModels,complete} from './responses.mjs';
@@ -25,9 +26,10 @@ async function token(){
   return a.access_token;
 }
 async function loadModels(){const id=accounts.active;const available=await listModels(await token());if(accounts.active!==id||!active()?.access_token)return;models=available;if(!models.length)throw Error('No eligible models were returned for this account.');if(!models.some(m=>m.id===settings.model)){settings.model=models[0].id;persist();}message('state',{state:publicState()});}
-function position(){const {workArea}=screen.getDisplayNearestPoint(screen.getCursorScreenPoint());const width=Math.min(680,workArea.width-32);win.setBounds({width,height:Math.min(690,workArea.height-40),x:Math.round(workArea.x+(workArea.width-width)/2),y:Math.round(workArea.y+(workArea.height-Math.min(690,workArea.height-40))/2)});}
+function position(){const {workArea}=screen.getDisplayNearestPoint(screen.getCursorScreenPoint());const width=Math.min(680,workArea.width-32),height=Math.min(win.getBounds().height,workArea.height-40);win.setBounds({width,height,x:Math.round(workArea.x+(workArea.width-width)/2),y:Math.round(workArea.y+(workArea.height-height)/2)});}
 async function openPanel(mode='text'){
   if(opening||locked)return;
+  if(authRequest){win.show();win.focus();return;}
   if(request){win.show();win.focus();return;}
   opening=true;
   try{
@@ -49,9 +51,9 @@ async function openPanel(mode='text'){
 function bind(next,previous){registerShortcuts(globalShortcut,next,previous,{text:()=>openPanel('text'),screen:()=>openPanel('screen')});}
 function hide(){request?.abort();image=null;history=[];win.hide();message('reset');}
 function secureWindow(){
-  win=new BrowserWindow({width:680,height:690,show:false,frame:false,transparent:true,backgroundColor:'#00000000',resizable:false,alwaysOnTop:true,skipTaskbar:true,roundedCorners:true,webPreferences:{preload:path.join(root,'src','preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
-  // Acrylic is provided by the Windows compositor on Windows 11 22H2+.
-  if(process.platform==='win32'){try{win.setBackgroundMaterial('acrylic');}catch{}}
+  win=new BrowserWindow({width:680,height:340,show:false,frame:false,transparent:true,backgroundColor:'#00000000',backgroundMaterial:'none',hasShadow:false,resizable:false,alwaysOnTop:true,skipTaskbar:true,roundedCorners:true,webPreferences:{preload:path.join(root,'src','preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+  // A native backdrop paints the entire rectangular HWND, including transparent margins.
+  win.on('blur',()=>{if(!opening&&!authRequest&&!request)hide();});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   win.webContents.on('will-navigate',event=>event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -65,7 +67,7 @@ function handle(name,fn){ipcMain.handle('glass:'+name,async(event,...args)=>{
 function setupIPC(){
   handle('state',()=>publicState());
   handle('hide',hide);
-  handle('resize',height=>{if(!Number.isFinite(height))return;const area=screen.getDisplayMatching(win.getBounds()).workArea;win.setSize(win.getBounds().width,Math.round(Math.max(220,Math.min(height,690,area.height-40))));});
+  handle('resize',height=>{if(!Number.isFinite(height))return;const bounds=win.getBounds(),area=screen.getDisplayMatching(bounds).workArea;const nextHeight=Math.round(Math.max(220,Math.min(height,690,area.height-40)));if(bounds.height===nextHeight)return;win.setResizable(true);try{win.setSize(bounds.width,nextHeight);}finally{win.setResizable(false);}});
   handle('settings',next=>{
     const valid=validateSettings(next);bind(valid,settings);
     const before=settings;settings=valid;
@@ -80,7 +82,7 @@ function setupIPC(){
     if(id&&!previous)throw Error('Unknown account.');
     authRequest=new AbortController();
     try{
-      const account=await signIn({hostId,previous,openBrowser:url=>shell.openExternal(url),signal:authRequest.signal});
+      const account=await browserHandoff(win,url=>shell.openExternal(url),openBrowser=>signIn({hostId,previous,openBrowser,signal:authRequest.signal}));
       account.welcomed=previous?.welcomed||false;
       if(authRequest.signal.aborted)throw Error('Sign-in cancelled.');
       const index=accounts.accounts.findIndex(a=>a.clientId===account.clientId&&a.subject===account.subject);
@@ -128,7 +130,7 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     try{bind(settings,null);}catch(error){shortcutError=error.message;}
     powerMonitor.on('lock-screen',()=>{locked=true;hide();detector.reset();});
     powerMonitor.on('unlock-screen',()=>{locked=false;detector.reset();});
-    poll=setInterval(()=>{if(!settings.gestures||locked||win.isVisible()||opening){detector.reset();return;}const p=screen.getCursorScreenPoint();const mode=detector.sample(p.x,p.y,performance.now());if(mode)openPanel(mode);},40);
+    poll=setInterval(()=>{if(!settings.gestures||locked||authRequest||win.isVisible()||opening){detector.reset();return;}const p=screen.getCursorScreenPoint();const mode=detector.sample(p.x,p.y,performance.now());if(mode)openPanel(mode);},16);
     await openPanel('text');
     if(shortcutError)message('error',{message:shortcutError});
     if(active()?.access_token)loadModels().catch(error=>message('error',{message:error.message}));
