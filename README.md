@@ -27,7 +27,7 @@ The authentication integration follows the current [OpenAI open-source Sign in w
 Install Node.js 22 or later and Git, then run in this folder:
 
 ```powershell
-npm install
+npm ci
 npm run check
 npm test
 npm start
@@ -57,7 +57,7 @@ git push -u origin main
 3. Open **Actions → Windows installer**. The workflow builds on a Windows runner and uploads a `Glass-Ask-Windows` artifact containing the installer.
 4. Run the [Windows acceptance checks](docs/WINDOWS-TESTING.md). Create a GitHub Release and attach the tested installer when ready. The workflow deliberately does not publish releases automatically.
 
-Dependency downloads were unavailable in the authoring environment. The first successful `npm install` generates `package-lock.json`. Commit that lockfile, replace `npm install` in the workflow with `npm ci`, and keep dependencies updated before public releases. The workflow uploads its resolved lockfile as an artifact as well.
+The included `package-lock.json` pins the resolved dependencies. Local and GitHub Actions builds use `npm ci` for repeatable installs. The workflow uploads the lockfile as an artifact as well.
 
 ## Use it
 
