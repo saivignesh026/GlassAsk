@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {defaults,validateSettings,registerShortcuts} from './settings.mjs';
 import {ShakeDetector} from './gestures.mjs';
-import {browserHandoff} from './window-behavior.mjs';
+import {browserHandoff,panelBounds} from './window-behavior.mjs';
 import {Vault,readJSON,atomicWrite} from './storage.mjs';
 import {signIn,refresh,revoke} from './oauth.mjs';
 import {listModels,complete} from './responses.mjs';
@@ -12,7 +12,8 @@ const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const page=path.join(root,'ui','index.html');
 let win,tray,settings,vault,accounts,settingsFile,hostId,detector,poll,locked=false,request=null,authRequest=null,refreshing=null,accountBusy=false,models=[],history=[],image=null,opening=false,quitting=false;
 const message=(type,data={})=>win?.webContents.send('glass:event',{type,...data});
-const persist=()=>atomicWrite(settingsFile,JSON.stringify({hostId,settings},null,2));
+let minimizing=false,panelPosition=null;
+const persist=()=>atomicWrite(settingsFile,JSON.stringify({hostId,settings,panelPosition},null,2));
 function saveAccounts(){vault.save(accounts);}
 function active(){return accounts.accounts.find(a=>a.clientId===accounts.active);}
 function publicState(){return {settings,accounts:accounts.accounts.map(a=>({id:a.clientId,label:`${a.email} · ${a.clientId.slice(-6)}`,connected:!!a.access_token})),active:accounts.active,connected:!!active()?.access_token,models,hasImage:!!image};}
@@ -26,9 +27,10 @@ async function token(){
   return a.access_token;
 }
 async function loadModels(){const id=accounts.active;const available=await listModels(await token());if(accounts.active!==id||!active()?.access_token)return;models=available;if(!models.length)throw Error('No eligible models were returned for this account.');if(!models.some(m=>m.id===settings.model)){settings.model=models[0].id;persist();}message('state',{state:publicState()});}
-function position(){const {workArea}=screen.getDisplayNearestPoint(screen.getCursorScreenPoint());const width=Math.min(680,workArea.width-32),height=Math.min(win.getBounds().height,workArea.height-40);win.setBounds({width,height,x:Math.round(workArea.x+(workArea.width-width)/2),y:Math.round(workArea.y+(workArea.height-height)/2)});}
+function position(){const {workArea}=screen.getDisplayNearestPoint(panelPosition||screen.getCursorScreenPoint());win.setBounds(panelBounds(workArea,680,win.getBounds().height,panelPosition));}
 async function openPanel(mode='text'){
   if(opening||locked)return;
+  if(win.isMinimized())win.restore();
   if(authRequest){win.show();win.focus();return;}
   if(request){win.show();win.focus();return;}
   opening=true;
@@ -53,7 +55,10 @@ function hide(){request?.abort();image=null;history=[];win.hide();message('reset
 function secureWindow(){
   win=new BrowserWindow({width:680,height:340,show:false,frame:false,transparent:true,backgroundColor:'#00000000',backgroundMaterial:'none',hasShadow:false,resizable:false,alwaysOnTop:true,skipTaskbar:true,roundedCorners:true,webPreferences:{preload:path.join(root,'src','preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
   // A native backdrop paints the entire rectangular HWND, including transparent margins.
-  win.on('blur',()=>{if(!opening&&!authRequest&&!request)hide();});
+  win.on('blur',()=>{if(!minimizing&&!win.isMinimized()&&!opening&&!authRequest&&!request)hide();});
+  win.on('restore',()=>{minimizing=false;win.setAlwaysOnTop(true);win.setSkipTaskbar(true);});
+  win.on('will-move',(_event,bounds)=>{panelPosition={x:bounds.x,y:bounds.y};});
+  win.on('moved',()=>{if(panelPosition)persist();});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   win.webContents.on('will-navigate',event=>event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false));
@@ -67,12 +72,13 @@ function handle(name,fn){ipcMain.handle('glass:'+name,async(event,...args)=>{
 function setupIPC(){
   handle('state',()=>publicState());
   handle('hide',hide);
+  handle('minimize',()=>{minimizing=true;win.setSkipTaskbar(false);win.setAlwaysOnTop(false);win.minimize();});
   handle('resize',height=>{if(!Number.isFinite(height))return;const bounds=win.getBounds(),area=screen.getDisplayMatching(bounds).workArea;const nextHeight=Math.round(Math.max(220,Math.min(height,690,area.height-40)));if(bounds.height===nextHeight)return;win.setResizable(true);try{win.setSize(bounds.width,nextHeight);}finally{win.setResizable(false);}});
   handle('settings',next=>{
     const valid=validateSettings(next);bind(valid,settings);
     const before=settings;settings=valid;
     try{persist();}catch(error){settings=before;bind(before,valid);throw error;}
-    detector=new ShakeDetector(settings.shakeCount,settings.shakeWindow);
+    detector=new ShakeDetector(settings.shakeCount,settings.shakeWindow,settings.gestureProfile==='trackpad'?12:25);
     if(process.platform==='win32'&&app.isPackaged)app.setLoginItemSettings({openAtLogin:settings.startAtLogin});
     message('state',{state:publicState()});return publicState();
   });
@@ -120,8 +126,9 @@ if(!app.requestSingleInstanceLock())app.quit();else {
     app.setAppUserModelId('io.glassask.desktop');
     settingsFile=path.join(app.getPath('userData'),'settings.json');
     const saved=readJSON(settingsFile,null);hostId=saved?.hostId||'urn:uuid:'+randomUUID();
+    if(Number.isInteger(saved?.panelPosition?.x)&&Number.isInteger(saved?.panelPosition?.y))panelPosition=saved.panelPosition;
     settings=saved?validateSettings(saved.settings):{...defaults};persist();
-    vault=new Vault(app.getPath('userData'),safeStorage);accounts=vault.load();detector=new ShakeDetector(settings.shakeCount,settings.shakeWindow);
+    vault=new Vault(app.getPath('userData'),safeStorage);accounts=vault.load();detector=new ShakeDetector(settings.shakeCount,settings.shakeWindow,settings.gestureProfile==='trackpad'?12:25);
     setupIPC();await secureWindow();
     tray=new Tray(nativeImage.createFromPath(path.join(root,'ui','icon.png')).resize({width:32,height:32}));
     tray.setToolTip('Glass Ask');tray.setContextMenu(Menu.buildFromTemplate([{label:'Ask a question',click:()=>openPanel('text')},{label:'Ask about screen',click:()=>openPanel('screen')},{label:'Settings',click:()=>{win.show();win.focus();message('settings');}},{type:'separator'},{label:'Quit Glass Ask',click:()=>app.quit()}]));

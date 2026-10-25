@@ -23,7 +23,7 @@ async function smoke(){try{
   // then keep the test window visible so Chromium can schedule layout frames.
   await delay(300);
   win.show();win.emit('blur');assert.equal(win.isVisible(),false,'clicking away dismisses the panel');
-  win.removeAllListeners('blur');win.show();win.focus();
+  const blurHandlers=win.listeners('blur');win.removeAllListeners('blur');win.show();win.focus();
   const run=code=>win.webContents.executeJavaScript(code);
   await delay(600);
   assert.equal(await run('state.settings.gestures'),true,'gestures enabled for new profiles');
@@ -41,6 +41,9 @@ async function smoke(){try{
   assert.equal(win.getBounds().height,compact,'reopening preserves fitted height');
   await run('viewSettings(true)');await delay(350);
   assert.ok(win.getBounds().height>compact,'settings grows');
+  await run('document.getElementById("trackpad-preset").click()');await delay(350);
+  assert.deepEqual(await run('({enabled:state.settings.gestures,profile:state.settings.gestureProfile,count:state.settings.shakeCount,time:state.settings.shakeWindow})'),{enabled:true,profile:'trackpad',count:3,time:3500},'trackpad preset saves and enables gestures');
+  await run('notice("")');
   await run('viewSettings(false)');await delay(350);
   assert.equal(win.getBounds().height,compact,'returning to composer shrinks');
   assert.equal((await win.webContents.capturePage()).toBitmap()[3],0,'margins remain transparent after resizing');
@@ -48,7 +51,19 @@ async function smoke(){try{
     assert.equal(win.isVisible(),false);assert.equal(win.isAlwaysOnTop(),false);
   },async open=>{await open('https://example.com');await delay(100);});
   assert.equal(win.isVisible(),true);assert.equal(win.isAlwaysOnTop(),true);
-  console.log('Windows smoke checks passed: sizing, transparency, reopen, settings, browser handoff.');
+  assert.equal(await run('getComputedStyle(document.querySelector("header")).getPropertyValue("-webkit-app-region")'),'drag');
+  assert.equal(await run('getComputedStyle(document.getElementById("minimize")).getPropertyValue("-webkit-app-region")'),'no-drag');
+  const moved={...win.getBounds(),x:120,y:100};
+  win.emit('will-move',{},moved);win.setPosition(moved.x,moved.y);win.emit('moved');
+  win.hide();app.emit('second-instance');await delay(250);
+  assert.equal(win.getBounds().x,moved.x);assert.equal(win.getBounds().y,moved.y);
+  for(const handler of blurHandlers)win.on('blur',handler);
+  await run('document.getElementById("minimize").click()');await delay(350);
+  assert.equal(win.isMinimized(),true,'minimize button minimizes without hiding/resetting');
+  app.emit('second-instance');await delay(350);
+  assert.equal(win.isMinimized(),false,'shortcut/second instance restores minimized app');
+  assert.equal(win.isVisible(),true);
+  console.log('Windows smoke checks passed: sizing, transparency, trackpad preset, browser handoff, drag position, minimize/restore.');
   clearTimeout(timeout);app.quit();
 }catch(error){console.error(error);clearTimeout(timeout);app.exit(1);}}
 smoke();

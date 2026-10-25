@@ -1,5 +1,5 @@
 {
-  "name": "glass-ask", "productName": "Glass Ask", "version": "0.1.1",
+  "name": "glass-ask", "productName": "Glass Ask", "version": "0.1.2",
   "description": "A glass desktop assistant for Windows, powered by your ChatGPT plan.",
   "author": "Glass Ask contributors", "license": "MIT", "private": true,
   "type": "module", "main": "src/main.mjs", "engines": {"node": ">=22"},

@@ -17,7 +17,7 @@ function render(s){
   $('account').value=s.active||'';
   $('model').replaceChildren(...s.models.map(m=>new Option(m.name,m.id)));
   $('model').value=s.settings.model;
-  for(const key of ['textShortcut','screenShortcut','shakeCount','shakeWindow','opacity'])$(key).value=s.settings[key];
+  for(const key of ['textShortcut','screenShortcut','shakeCount','shakeWindow','opacity','gestureProfile'])$(key).value=s.settings[key];
   for(const key of ['gestures','startAtLogin'])$(key).checked=s.settings[key];
   $('attachment').hidden=!s.hasImage;
 }
@@ -25,6 +25,7 @@ function setPending(value){pending=value;$('send').disabled=value;$('question').
 function reset(){answer='';$('answer').textContent='';$('asked').textContent='';$('result').hidden=true;$('copy').hidden=true;$('question').value='';notice('');$('status').textContent='Enter to ask · Shift+Enter for a new line';}
 function viewSettings(show){$('chat').hidden=show;$('settings-panel').hidden=!show;if(!show)$('question').focus();}
 $('close').onclick=()=>call('hide');
+$('minimize').onclick=()=>call('minimize');
 $('settings-toggle').onclick=()=>viewSettings($('settings-panel').hidden);
 $('back').onclick=()=>viewSettings(false);
 $('connect').onclick=guarded(()=>login(state.active));
@@ -41,11 +42,16 @@ $('remove-image').onclick=guarded(()=>call('removeImage'));
 $('copy').onclick=guarded(async()=>{await call('copy',answer);$('copy').textContent='Copied';});
 $('save').onclick=guarded(async()=>{
   const next={...state.settings};
+  next.gestureProfile=$('gestureProfile').value;
   for(const key of ['textShortcut','screenShortcut'])next[key]=$(key).value;
   for(const key of ['shakeCount','shakeWindow','opacity'])next[key]=Number($(key).value);
   for(const key of ['gestures','startAtLogin'])next[key]=$(key).checked;
   next.model=$('model').value||state.settings.model;
   render(await call('settings',next));notice('Preferences saved. Your shortcuts are active.');
+});
+$('trackpad-preset').onclick=guarded(async()=>{
+  render(await call('settings',{...state.settings,gestures:true,gestureProfile:'trackpad',shakeCount:3,shakeWindow:3500}));
+  notice('Trackpad gestures saved. Close the panel, then use one finger to move the pointer left-right or up-down three times within 3.5 seconds.');
 });
 for(const key of ['textShortcut','screenShortcut']){
   $(key).onkeydown=event=>{

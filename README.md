@@ -11,7 +11,7 @@ A small, glass-style Windows assistant. Ask a question from anywhere, or capture
 - Continue with ChatGPT, saved account/workspace registrations, reconnect and sign-out.
 - Account-specific model picker and streamed answers.
 - Separate, customizable global shortcuts for text and screen questions, with conflict detection.
-- Optional mouse gestures: left–right for screenshot questions, up–down for text. Default: five movements each way within two seconds.
+- Optional mouse gestures: left–right for screenshot questions, up–down for text. Default trackpad profile: three movements each way within 3.5 seconds.
 - Automatic capture of the monitor under the pointer, before the popup appears.
 - Remove a captured screenshot before sending. Nothing is uploaded just by opening the popup.
 - Follow-up questions, copy answer, cancel, tray menu, and optional launch at login.
@@ -39,7 +39,7 @@ Create the installer:
 npm run dist:win
 ```
 
-The output is `dist/Glass-Ask-0.1.1-Setup.exe`. It is unsigned unless you configure your own signing certificate. Sign and test public release binaries under your own publisher identity.
+The output is `dist/Glass-Ask-0.1.2-Setup.exe`. It is unsigned unless you configure your own signing certificate. Sign and test public release binaries under your own publisher identity.
 
 ## Put it on GitHub
 
@@ -61,13 +61,15 @@ The included `package-lock.json` pins the resolved dependencies. Local and GitHu
 
 ## Use it
 
+Drag the top header to move the panel; its position is remembered. Click **−** to minimize to the Windows taskbar. Restore from the taskbar or the global shortcut. The close button hides the panel in the tray.
+
 Mouse gestures are enabled on new installations. Upgrades preserve your existing preference: if gestures are off, enable **Settings → Mouse shake gestures** and click **Save preferences**. Click outside the panel or press Escape to dismiss it before shaking the mouse. Sign-in hides the panel while you use the browser and restores it when sign-in finishes or fails.
 
 1. Launch Glass Ask and choose **Continue with ChatGPT**. Approve the connection in the system browser.
 2. Default text shortcut: **Ctrl + Alt + Space**.
 3. Default screen shortcut: **Ctrl + Alt + S**.
 4. Open **Settings**, click either shortcut field and press your preferred combination, then **Save preferences**.
-5. Optionally enable mouse gestures and adjust the count and time window. Each stroke must travel at least 25 logical pixels; diagonal movement is ignored.
+5. Optionally enable mouse gestures and adjust the count and time window. Use one finger on a trackpad to move the pointer; two-finger scrolling does not move the pointer. Trackpad strokes must travel at least 12 logical pixels (mouse profile: 25). Use **Settings → Use trackpad settings** to enable gestures and save the trackpad preset, including on upgrades. Diagonal movement is ignored.
 6. Press Enter to send, Shift+Enter for a new line, or Escape to hide and clear the current chat. The tray menu can always reopen Settings.
 
 Your screen capture stays attached to the current in-memory chat for follow-ups. A fresh trigger starts a fresh chat. Screenshots are limited to 2560 pixels wide. DRM/protected windows may appear black. Mouse gestures are disabled while the panel is visible or the desktop is locked.

@@ -1,4 +1,4 @@
-export const defaults = Object.freeze({textShortcut:'Control+Alt+Space', screenShortcut:'Control+Alt+S', gestures:true, shakeCount:5, shakeWindow:2000, opacity:82, startAtLogin:false, model:''});
+export const defaults = Object.freeze({textShortcut:'Control+Alt+Space', screenShortcut:'Control+Alt+S', gestures:true, gestureProfile:'trackpad', shakeCount:3, shakeWindow:3500, opacity:82, startAtLogin:false, model:''});
 export function shortcut(value) {
   if (typeof value !== 'string' || value.length > 80) throw Error('Invalid shortcut.');
   const parts = value.split('+');
@@ -10,6 +10,8 @@ export function shortcut(value) {
 export function validateSettings(input) {
   if (!input || typeof input !== 'object') throw Error('Invalid settings.');
   const s = {...defaults};
+  s.gestureProfile=input.gestureProfile??defaults.gestureProfile;
+  if(!['mouse','trackpad'].includes(s.gestureProfile))throw Error('Invalid gesture profile.');
   s.textShortcut=shortcut(input.textShortcut); s.screenShortcut=shortcut(input.screenShortcut);
   if(s.textShortcut===s.screenShortcut) throw Error('Choose different shortcuts for text and screen.');
   for(const key of ['gestures','startAtLogin']) { if(typeof input[key]!=='boolean') throw Error(`Invalid ${key}`); s[key]=input[key]; }
